@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb55772461a6a304fbcd23da9ecef67a, type: 3}
+  m_Name: BurnedMeat
+  m_EditorClassIdentifier: 
+  prefabs: {fileID: 1556657899433418066, guid: a58bb76dd9e44ff41a1859dc1bca79c2, type: 3}
+  objectSprite: {fileID: 21300000, guid: 713ea9afa60dd6e4ebf6503a33e8cc99, type: 3}
+  objectName: "\u70E4\u7126\u7684\u8089"
