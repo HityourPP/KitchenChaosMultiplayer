@@ -27,6 +27,7 @@ public class PlayerController : NetworkBehaviour,IKitchenObjectParent
     [SerializeField] private LayerMask collisionLayerMask;
     [SerializeField] private Transform kitchenObjectHoldPoint;
     [SerializeField] private List<Vector3> spawnPositionList;       //玩家生成时的位置
+    [SerializeField] private PlayerVisual playerVisual;             //用于设置玩家选择的颜色
     public bool isWalking;
     private Vector3 lastDir;
     private BaseCounter selectedCounter;
@@ -43,8 +44,10 @@ public class PlayerController : NetworkBehaviour,IKitchenObjectParent
     {
         anim = transform.GetChild(0).GetComponent<Animator>();
         InputManager.Instance.OnInteractionAction += InteractionAction;//为之前创建的空事件添加函数
-     
         InputManager.Instance.OnInteractionAlternateAction += InteractionAlternateAction;
+        //设置玩家选中的颜色
+        PlayerData playerData = KitchenGameMultiPlayer.Instance.GetPlayerDataFromClientId(OwnerClientId);
+        playerVisual.SetPlayerColor(KitchenGameMultiPlayer.Instance.GetPlayerColor(playerData.colorId));
     }
     /// <summary>
     /// 设置对于单个用户端口的单例模式
@@ -56,7 +59,8 @@ public class PlayerController : NetworkBehaviour,IKitchenObjectParent
             LocalInstance = this;
         }
         //OwnerClientId为连接的端口id，这里在玩家断开连接时会有问题，后续再进行优化
-        transform.position = spawnPositionList[(int)OwnerClientId]; 
+        transform.position =
+            spawnPositionList[KitchenGameMultiPlayer.Instance.GetPlayerDataIndexFromClientId(OwnerClientId)]; 
         OnAnyPlayerSpawned?.Invoke(this, EventArgs.Empty);
         //只需在服务端绑定事件即可
         if (IsServer)
