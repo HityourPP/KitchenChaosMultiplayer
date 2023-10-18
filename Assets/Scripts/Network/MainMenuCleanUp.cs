@@ -8,7 +8,7 @@ public class MainMenuCleanUp : MonoBehaviour
 {
     private void Awake()
     {
-        //将两个不会随场景加载的对象销毁
+        //将不会随场景加载的对象销毁
         if (NetworkManager.Singleton != null)
         {
             Destroy(NetworkManager.Singleton.gameObject);
@@ -17,6 +17,11 @@ public class MainMenuCleanUp : MonoBehaviour
         if (KitchenGameMultiPlayer.Instance != null)
         {
             Destroy(KitchenGameMultiPlayer.Instance.gameObject);
+        }
+
+        if (KitchenGameLobby.Instance != null)
+        {
+            Destroy(KitchenGameLobby.Instance.gameObject);
         }
     }
 }

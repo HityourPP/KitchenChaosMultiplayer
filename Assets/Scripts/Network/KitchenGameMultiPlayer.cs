@@ -12,7 +12,7 @@ public class KitchenGameMultiPlayer : NetworkBehaviour
 {
     public static KitchenGameMultiPlayer Instance { get; private set; }
     //最大一起游玩的玩家数设置为4
-    private const int MAX_PLAYER_AMOUNT = 4;
+    public const int MAX_PLAYER_AMOUNT = 4;
 
     public event EventHandler OnTryingToJoinGame;
     public event EventHandler OnFailedToJoinGame;
