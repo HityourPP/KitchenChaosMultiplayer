@@ -22,8 +22,8 @@ public class HostDisconnectUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        //场景切换时会销毁这些物品，但不会取消订阅，这里手动设置
-        NetworkManager.Singleton.OnClientDisconnectCallback -= NetworkManagerOnClientDisconnectCallback;
+        //场景切换时会销毁这些物品，但不会取消订阅，这里手动设置,这里会报错，先暂时注释掉
+        // NetworkManager.Singleton.OnClientDisconnectCallback -= NetworkManagerOnClientDisconnectCallback;
     }
 
     private void NetworkManagerOnClientDisconnectCallback(ulong clientId)

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
@@ -10,12 +11,39 @@ public class KitchenGameLobby : MonoBehaviour
 {
     public static KitchenGameLobby Instance { get; private set; }
     private Lobby joinedLobby;
+    private float heartbeatTimer;
     private void Awake()
     {
         Instance = this;
         DontDestroyOnLoad(gameObject);
         InitializeUnityAuthentication();
     }
+
+    private void Update()
+    {
+        HandleHeartbeat();
+    }
+    /// <summary>
+    /// 每隔15s提示大厅，让其处于活动状态
+    /// </summary>
+    private void HandleHeartbeat()
+    {
+        if (IsLobbyHost())
+        {
+            heartbeatTimer -= Time.deltaTime;
+            if (heartbeatTimer < 0f)
+            {
+                heartbeatTimer = 15f;
+                LobbyService.Instance.SendHeartbeatPingAsync(joinedLobby.Id);
+            }
+        }
+    }
+
+    private bool IsLobbyHost()
+    {
+        return joinedLobby != null && joinedLobby.HostId == AuthenticationService.Instance.PlayerId;
+    }
+
     /// <summary>
     /// 初始化unity身份验证 ，async将方法标记为异步   
     /// </summary>
@@ -85,8 +113,66 @@ public class KitchenGameLobby : MonoBehaviour
             Debug.Log(e);
         }
     }
+    //下面添加离开大厅页面后的清理函数
+    /// <summary>
+    /// 从大厅场景跳转到游戏场景，调用删除大厅，下面的函数
+    /// </summary>
+    public async void DeleteLobby()
+    {
+        if (joinedLobby != null)
+        {
+            try
+            {
+
+                await LobbyService.Instance.DeleteLobbyAsync(joinedLobby.Id);
+                joinedLobby = null;
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.Log(e);
+            }
+        }
+    }
+    /// <summary>
+    /// 从大厅页面退回到主场景，调用离开大厅的函数
+    /// </summary>
+    public async void LeaveLobby()
+    {
+        if (joinedLobby != null)
+        {
+            try
+            {
+                await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId);
+                joinedLobby = null;
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.Log(e);
+            }
+        }
+    }    
+    /// <summary>
+    /// 踢人时调用下面函数
+    /// </summary>
+    public async void KickPlayer(string playerId)
+    {
+        if (IsLobbyHost())
+        {
+            try
+            {
+                await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, playerId);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.Log(e);
+            }
+        }
+    }
+    
     public Lobby GetLobby()
     {
         return joinedLobby;
     }
+
+
 }
