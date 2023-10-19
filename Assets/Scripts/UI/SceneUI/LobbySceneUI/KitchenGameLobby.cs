@@ -10,6 +10,13 @@ using Random = UnityEngine.Random;
 public class KitchenGameLobby : MonoBehaviour
 {
     public static KitchenGameLobby Instance { get; private set; }
+
+    public event EventHandler OnCreateLobbyStarted;
+    public event EventHandler OnCreateLobbyFailed;
+    public event EventHandler OnJoinStarted;
+    public event EventHandler OnJoinFailed;
+    public event EventHandler OnQuickJoinFailed;
+    
     private Lobby joinedLobby;
     private float heartbeatTimer;
     private void Awake()
@@ -66,6 +73,7 @@ public class KitchenGameLobby : MonoBehaviour
     /// </summary>
     public async void CreateLobby(string lobbyName, bool isPrivate)
     {
+        OnCreateLobbyStarted?.Invoke(this, EventArgs.Empty);
         //为了确保游戏不会中断运行,使用Try catch语句
         try
         {
@@ -81,6 +89,7 @@ public class KitchenGameLobby : MonoBehaviour
         catch (LobbyServiceException e)
         {
             Debug.Log(e);
+            OnCreateLobbyFailed?.Invoke(this, EventArgs.Empty);
         }
     }
     /// <summary>
@@ -88,6 +97,7 @@ public class KitchenGameLobby : MonoBehaviour
     /// </summary>
     public async void QuickJoin()
     {
+        OnJoinStarted?.Invoke(this, EventArgs.Empty);
         try
         {
             joinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync();
@@ -96,6 +106,7 @@ public class KitchenGameLobby : MonoBehaviour
         catch (LobbyServiceException e)
         {
             Debug.Log(e);
+            OnQuickJoinFailed?.Invoke(this, EventArgs.Empty);
         }
     }
     /// <summary>
@@ -103,6 +114,7 @@ public class KitchenGameLobby : MonoBehaviour
     /// </summary>
     public async void JoinWithCode(string lobbyCode)
     {
+        OnJoinStarted?.Invoke(this, EventArgs.Empty);
         try
         {
             joinedLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
@@ -111,6 +123,7 @@ public class KitchenGameLobby : MonoBehaviour
         catch (LobbyServiceException e)
         {
             Debug.Log(e);
+            OnJoinFailed?.Invoke(this, EventArgs.Empty);
         }
     }
     //下面添加离开大厅页面后的清理函数
