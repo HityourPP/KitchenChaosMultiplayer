@@ -19,6 +19,7 @@ public class CharacterSelectUI : MonoBehaviour
         {
             //先关闭网络连接，再加载到主场景
             NetworkManager.Singleton.Shutdown();
+            KitchenGameLobby.Instance.LeaveLobby();
             Loader.Load(Loader.Scene.MainMenu);
         }));
         readyButton.onClick.AddListener((() =>

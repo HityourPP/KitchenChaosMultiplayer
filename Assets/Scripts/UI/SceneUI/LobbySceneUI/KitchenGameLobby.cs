@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
@@ -16,9 +17,16 @@ public class KitchenGameLobby : MonoBehaviour
     public event EventHandler OnJoinStarted;
     public event EventHandler OnJoinFailed;
     public event EventHandler OnQuickJoinFailed;
+    public event EventHandler<LobbyListChangedEventArgs> OnLobbyListChanged;
+
+    public class LobbyListChangedEventArgs : EventArgs
+    {
+        public List<Lobby> lobbyList;
+    }
     
     private Lobby joinedLobby;
     private float heartbeatTimer;
+    private float listLobbiesTimer;
     private void Awake()
     {
         Instance = this;
@@ -29,6 +37,7 @@ public class KitchenGameLobby : MonoBehaviour
     private void Update()
     {
         HandleHeartbeat();
+        HandlePeriodicListLobbies();
     }
     /// <summary>
     /// 每隔15s提示大厅，让其处于活动状态
@@ -45,10 +54,51 @@ public class KitchenGameLobby : MonoBehaviour
             }
         }
     }
+    /// <summary>
+    /// 定期更新大厅列表
+    /// </summary>
+    private void HandlePeriodicListLobbies()
+    {
+        //当还未加入大厅，并且已经初始化登录状态后，进行持续更新列表
+        if (joinedLobby == null && AuthenticationService.Instance.IsSignedIn)
+        {
+            listLobbiesTimer -= Time.deltaTime;
+            if (listLobbiesTimer < 0f)
+            {
+                listLobbiesTimer = 3f;
+                ListLobbies();
+            }     
+        }
+    }
 
     private bool IsLobbyHost()
     {
         return joinedLobby != null && joinedLobby.HostId == AuthenticationService.Instance.PlayerId;
+    }
+
+    private async void ListLobbies()
+    {
+        try
+        {
+            //设置查询大厅时的选项设置,这里使用分页查询的选项设置
+            QueryLobbiesOptions queryLobbiesOptions = new QueryLobbiesOptions()
+            {
+                Filters = new List<QueryFilter>()
+                {
+                    new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
+                }
+            };
+            QueryResponse queryResponse = await LobbyService.Instance.QueryLobbiesAsync(queryLobbiesOptions);
+
+            OnLobbyListChanged?.Invoke(this,new LobbyListChangedEventArgs()
+            {
+                lobbyList =  queryResponse.Results
+            });
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.Log(e);
+        }
     }
 
     /// <summary>
@@ -118,6 +168,23 @@ public class KitchenGameLobby : MonoBehaviour
         try
         {
             joinedLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
+            KitchenGameMultiPlayer.Instance.StartClient();
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.Log(e);
+            OnJoinFailed?.Invoke(this, EventArgs.Empty);
+        }
+    }   
+    /// <summary>
+    /// 通过id进入房间
+    /// </summary>
+    public async void JoinWithId(string lobbyId)
+    {
+        OnJoinStarted?.Invoke(this, EventArgs.Empty);
+        try
+        {
+            joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
             KitchenGameMultiPlayer.Instance.StartClient();
         }
         catch (LobbyServiceException e)
