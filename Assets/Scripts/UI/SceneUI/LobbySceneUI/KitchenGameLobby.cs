@@ -1,18 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
+using Unity.Networking.Transport.Relay;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
+using Unity.Services.Relay;
+using Unity.Services.Relay.Models;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
 
 public class KitchenGameLobby : MonoBehaviour
 {
+    public const string KEY_RELAY_JOIN_CODE = "RelayJoinCode";
     public static KitchenGameLobby Instance { get; private set; }
-
     public event EventHandler OnCreateLobbyStarted;
     public event EventHandler OnCreateLobbyFailed;
     public event EventHandler OnJoinStarted;
@@ -134,6 +140,24 @@ public class KitchenGameLobby : MonoBehaviour
                 {
                     IsPrivate = isPrivate
                 });
+            //分配relay
+            Allocation allocation = await AllocateRelay();
+            
+            string relayJoinCode = await GetRelayJoinCode(allocation);
+            
+            //将relayJoinCode存储在lobby数据中
+            await LobbyService.Instance.UpdateLobbyAsync(joinedLobby.Id, new UpdateLobbyOptions
+            {
+                Data = new Dictionary<string, DataObject>
+                {//DataObject.VisibilityOptions.Member设置只对成员可见
+                    { KEY_RELAY_JOIN_CODE, new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) }
+                }
+            });
+            
+            //设置分配的delay,dtls是一种连接加密类型
+            NetworkManager.Singleton.GetComponent<UnityTransport>()
+                .SetRelayServerData(new RelayServerData(allocation, "dtls"));
+            
             KitchenGameMultiPlayer.Instance.StartHost();
             //使用多人联机下的加载场景方式
             Loader.LoadNetwork(Loader.Scene.CharacterSelectScene);
@@ -145,6 +169,57 @@ public class KitchenGameLobby : MonoBehaviour
         }
     }
     /// <summary>
+    /// 分配Relay
+    /// </summary>
+    private async Task<Allocation> AllocateRelay()
+    {
+        try
+        {
+            //这里的数目减一是不包括服务端
+            Allocation allocation =
+                await RelayService.Instance.CreateAllocationAsync(KitchenGameMultiPlayer.MAX_PLAYER_AMOUNT - 1);
+            return allocation;
+        }
+        catch (RelayServiceException e)
+        {
+            Console.WriteLine(e);
+            return default;
+        }
+    }
+    /// <summary>
+    /// 获取加入relay的代码
+    /// </summary>
+    private async Task<string> GetRelayJoinCode(Allocation allocation)
+    {
+        try
+        {
+            string relayJoinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            return relayJoinCode;
+        }
+        catch (RelayServiceException e)
+        {
+            Console.WriteLine(e);
+            return default;
+        }
+    }
+    /// <summary>
+    /// 通过加入代码加入到分配的relay中
+    /// </summary>
+    private async Task<JoinAllocation> JoinRelay(string joinCode)
+    {
+        try
+        {
+            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+            return joinAllocation;
+        }
+        catch (RelayServiceException e)
+        {
+            Console.WriteLine(e);
+            return default;
+        }
+    }
+
+    /// <summary>
     /// 快速加入，启动客户端加入
     /// </summary>
     public async void QuickJoin()
@@ -153,6 +228,14 @@ public class KitchenGameLobby : MonoBehaviour
         try
         {
             joinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync();
+            //获取加入代码
+            string relayJoinCode = joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value;
+            //加入到relay中
+            JoinAllocation joinAllocation = await JoinRelay(relayJoinCode);
+            
+            NetworkManager.Singleton.GetComponent<UnityTransport>()
+                .SetRelayServerData(new RelayServerData(joinAllocation, "dtls"));
+            
             KitchenGameMultiPlayer.Instance.StartClient();
         }
         catch (LobbyServiceException e)
@@ -170,6 +253,15 @@ public class KitchenGameLobby : MonoBehaviour
         try
         {
             joinedLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
+            
+            //获取加入代码
+            string relayJoinCode = joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value;
+            //加入到relay中
+            JoinAllocation joinAllocation = await JoinRelay(relayJoinCode);
+            
+            NetworkManager.Singleton.GetComponent<UnityTransport>()
+                .SetRelayServerData(new RelayServerData(joinAllocation, "dtls"));
+            
             KitchenGameMultiPlayer.Instance.StartClient();
         }
         catch (LobbyServiceException e)
@@ -187,6 +279,13 @@ public class KitchenGameLobby : MonoBehaviour
         try
         {
             joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+            //获取加入代码
+            string relayJoinCode = joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value;
+            //加入到relay中
+            JoinAllocation joinAllocation = await JoinRelay(relayJoinCode);
+            
+            NetworkManager.Singleton.GetComponent<UnityTransport>()
+                .SetRelayServerData(new RelayServerData(joinAllocation, "dtls"));
             KitchenGameMultiPlayer.Instance.StartClient();
         }
         catch (LobbyServiceException e)
@@ -255,6 +354,4 @@ public class KitchenGameLobby : MonoBehaviour
     {
         return joinedLobby;
     }
-
-
 }
