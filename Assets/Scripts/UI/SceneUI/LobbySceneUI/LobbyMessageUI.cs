@@ -68,6 +68,11 @@ public class LobbyMessageUI : MonoBehaviour
     {
         //由于KitchenGameMultiPlayer不会随着场景销毁而销毁，所以这些订阅的事件也不会销毁，这里进行手动销毁
         KitchenGameMultiPlayer.Instance.OnFailedToJoinGame -= KitchenGameMultiPlayerOnFailedToJoinGame;
+        KitchenGameLobby.Instance.OnCreateLobbyStarted -= KitchenGameLobbyOnCreateLobbyStarted;
+        KitchenGameLobby.Instance.OnCreateLobbyFailed -= KitchenGameLobbyOnCreateLobbyFailed;
+        KitchenGameLobby.Instance.OnJoinStarted -= KitchenGameLobbyOnJoinStarted;
+        KitchenGameLobby.Instance.OnQuickJoinFailed -= KitchenGameLobbyOnQuickJoinFailed;
+        KitchenGameLobby.Instance.OnJoinFailed -= KitchenGameLobbyOnJoinFailed;
     }
 
     private void ShowMessage(string message)

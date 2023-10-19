@@ -6,6 +6,7 @@ using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
 
 public class KitchenGameLobby : MonoBehaviour
@@ -59,8 +60,9 @@ public class KitchenGameLobby : MonoBehaviour
     /// </summary>
     private void HandlePeriodicListLobbies()
     {
-        //当还未加入大厅，并且已经初始化登录状态后，进行持续更新列表
-        if (joinedLobby == null && AuthenticationService.Instance.IsSignedIn)
+        //当还未加入大厅，并且已经初始化登录状态后，进行持续更新列表，还需要添加在LobbyScene这个限制条件
+        if (joinedLobby == null && AuthenticationService.Instance.IsSignedIn &&
+            SceneManager.GetActiveScene().name == Loader.Scene.LobbyScene.ToString())
         {
             listLobbiesTimer -= Time.deltaTime;
             if (listLobbiesTimer < 0f)
