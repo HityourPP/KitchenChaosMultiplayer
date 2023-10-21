@@ -119,6 +119,7 @@ public class KitchenGameLobby : MonoBehaviour
         {
             //为了让同一设备在加载场景时，加载不同的形象，这里设置随机的配置
             InitializationOptions initializationOptions = new InitializationOptions();
+            //下面的在最后不需要在进行设置随机了,暂时注释掉
             initializationOptions.SetProfile(Random.Range(0, 10000).ToString());
             //异步初始化游戏服务，异步方法在碰到await表达式之前都是使用同步的方式执行
             await UnityServices.InitializeAsync(initializationOptions);

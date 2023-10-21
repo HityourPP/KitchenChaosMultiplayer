@@ -80,21 +80,23 @@ public class CuttingCounter : BaseCounter
         });
     }
     /// <summary>
-    /// 同步切割动画与声音
+    /// 同步切割动画与声音，当客户端有延迟时，切割物这边会报空
     /// </summary>
-    /// <param name="player"></param>
     public override void InteractAlternate(PlayerController player)
     {//在切菜前需要在柜台上有物品,并且玩家手上没有物品
         if (!player.GetKitchenObject()&&HasKitchenObject() && GetOutputKitchenObjectsSo(kitchenObject.GetKitchenObjectsSO())) 
         {
             CutObjectServerRpc();
+            TestCuttingProgressDoneServerRpc();
         }
     }
     [ServerRpc(RequireOwnership = false)]
     private void CutObjectServerRpc()
     {
-        CutObjectClientRpc();
-        TestCuttingProgressDoneServerRpc();
+        if (HasKitchenObject() && GetOutputKitchenObjectsSo(kitchenObject.GetKitchenObjectsSO())) 
+        {
+            CutObjectClientRpc();
+        }
     }
 
     [ClientRpc]
@@ -118,17 +120,20 @@ public class CuttingCounter : BaseCounter
     [ServerRpc(RequireOwnership = false)]
     private void TestCuttingProgressDoneServerRpc()
     {
-        CuttingRecipe_SO cuttingRecipeSo = GetCuttingRecipeSo(kitchenObject.GetKitchenObjectsSO());
-        if (cuttingProgress >= cuttingRecipeSo.cuttingProgressMax)
+        if (HasKitchenObject() && GetOutputKitchenObjectsSo(kitchenObject.GetKitchenObjectsSO()))
         {
-            KitchenObjects_SO outputKitchenObjectsSo = GetOutputKitchenObjectsSo(kitchenObject.GetKitchenObjectsSO());
-            //销毁之前的物品，切为片
-            //修改使用新修改的销毁方法
-            KitchenObject.DestroyKitchenObject(kitchenObject);
-            //生成切片
-            // Transform objectSpawn = Instantiate(cuttingKitchenObjectSO.prefabs);
-            // objectSpawn.GetComponent<KitchenObject>().SetKitchenObjectParent(this); 
-            KitchenObject.SpawnNewKitchenObject(outputKitchenObjectsSo, this);                
+            CuttingRecipe_SO cuttingRecipeSo = GetCuttingRecipeSo(kitchenObject.GetKitchenObjectsSO());
+            if (cuttingProgress >= cuttingRecipeSo.cuttingProgressMax)
+            {
+                KitchenObjects_SO outputKitchenObjectsSo = GetOutputKitchenObjectsSo(kitchenObject.GetKitchenObjectsSO());
+                //销毁之前的物品，切为片
+                //修改使用新修改的销毁方法
+                KitchenObject.DestroyKitchenObject(kitchenObject);
+                //生成切片
+                // Transform objectSpawn = Instantiate(cuttingKitchenObjectSO.prefabs);
+                // objectSpawn.GetComponent<KitchenObject>().SetKitchenObjectParent(this); 
+                KitchenObject.SpawnNewKitchenObject(outputKitchenObjectsSo, this);                
+            }            
         }
     }
 

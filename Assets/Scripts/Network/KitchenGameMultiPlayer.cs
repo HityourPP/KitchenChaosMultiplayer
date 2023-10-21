@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -17,7 +18,6 @@ public class KitchenGameMultiPlayer : NetworkBehaviour
     public const int MAX_PLAYER_AMOUNT = 4;
     //存储玩家名字的键值
     private const string PLAYER_PREFABS_PLAYER_NAME_MULTIPLAYER = "PlayerNameMultiplayer";
-
     public event EventHandler OnTryingToJoinGame;
     public event EventHandler OnFailedToJoinGame;
     public event EventHandler OnPlayerDataNetworkListChanged;
@@ -174,6 +174,15 @@ public class KitchenGameMultiPlayer : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void SpawnNewKitchenObjectServerRpc(int index,NetworkObjectReference kitchenObjectParentNetworkObjectReference)
     {
+        //获取父对象引用的NetworkObject组件
+        kitchenObjectParentNetworkObjectReference.TryGet(out NetworkObject kitchenObjectParentNetworkObject);
+        //获取组件
+        IKitchenObjectParent kitchenObjectParent =
+            kitchenObjectParentNetworkObject.GetComponent<IKitchenObjectParent>();
+        if (kitchenObjectParent.HasKitchenObject())
+        {   //父对象上已经生成厨房物品了，则不再生成
+            return;
+        }
         //获取物品数据
         KitchenObjects_SO kitchenObjects_SO = GetKitchenObjectsSoFromIndex(index);
         //生成物品
@@ -184,11 +193,6 @@ public class KitchenGameMultiPlayer : NetworkBehaviour
         kitchenNetworkObject.Spawn(true);
         //获取KitchenObject代码组件
         KitchenObject kitchenObject = kitchenObjectSpawn.GetComponent<KitchenObject>();
-        //获取父对象引用的NetworkObject组件
-        kitchenObjectParentNetworkObjectReference.TryGet(out NetworkObject kitchenObjectParentNetworkObject);
-        //获取组件
-        IKitchenObjectParent kitchenObjectParent =
-            kitchenObjectParentNetworkObject.GetComponent<IKitchenObjectParent>();
         //设置父对象
         kitchenObject.SetKitchenObjectParent(kitchenObjectParent);
     }
@@ -218,6 +222,11 @@ public class KitchenGameMultiPlayer : NetworkBehaviour
     private void DestroyKitchenObjectServerRpc(NetworkObjectReference kitchenObjectNetworkObjectReference)
     {
         kitchenObjectNetworkObjectReference.TryGet(out NetworkObject kitchenObjectNetworkObject);
+        //物品已经为空，说明已经销毁
+        if (kitchenObjectNetworkObject == null)
+        {
+            return;
+        }
         KitchenObject kitchenObject = kitchenObjectNetworkObject.GetComponent<KitchenObject>();
         DestroyKitchenObjectClientRpc(kitchenObjectNetworkObjectReference);
         //摧毁对象只能在服务端执行
